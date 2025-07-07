@@ -137,12 +137,12 @@ let write_coverage_data () =
     create_file 100
 
 let reset_counters () =
-  Lazy.force coverage
-  |> Hashtbl.iter begin fun . _ {counts; _} ->
+  let coverage_table = Lazy.force coverage in
+  Hashtbl.iter (fun _ {counts; _} ->
     match Array.length counts with
     | 0 -> ()
     | n -> Array.fill counts 0 (n - 1) 0
-  end
+  ) coverage_table
 
 let reset_coverage_data =
   reset_counters
