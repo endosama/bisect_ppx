@@ -21,6 +21,11 @@ esy_build() {
     cp _build/default/src/report/main.exe ./bisect-ppx-report
     # cp ./ppx bin/$OS/ppx 
     # cp ./bisect-ppx-report bin/$OS/bisect-ppx-report 
+    
+    # Build ReScript sources to generate .cmi files
+    echo "Building ReScript sources..."
+    npx rescript build
+    
     exit 0
 }
 
@@ -55,3 +60,7 @@ fi
 echo "Using pre-built binaries for system '$OS'."
 cp bin/$OS/ppx ./ppx
 cp bin/$OS/bisect-ppx-report ./bisect-ppx-report
+
+# Build ReScript sources to generate .cmi files
+echo "Building ReScript sources..."
+npx rescript build
