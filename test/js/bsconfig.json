@@ -6,6 +6,12 @@
   "ppx-flags": [
     "@endosama/bisect_ppx/ppx"
   ],
+  "package-specs": [
+    {
+      "module": "commonjs",
+      "in-source": false
+    }
+  ],
   "refmt": 3,
   "sources": ["."]
 }
