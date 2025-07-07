@@ -2,6 +2,49 @@
    LICENSE.md for details, or visit
    https://github.com/aantron/bisect_ppx/blob/master/LICENSE.md. *)
 
+module Node = struct
+  module Fs = struct
+    type path = string
+
+    external openSync :
+    path ->
+    (
+      [ `Read [@bs.as "r"]
+      | `Read_write [@bs.as "r+"]
+      | `Read_write_sync [@bs.as "rs+"]
+      | `Write [@bs.as "w"]
+      | `Write_fail_if_exists [@bs.as "wx"]
+      | `Write_read [@bs.as "w+"]
+      | `Write_read_fail_if_exists [@bs.as "wx+"]
+      | `Append [@bs.as "a"]
+      | `Append_fail_if_exists [@bs.as "ax"]
+      | `Append_read [@bs.as "a+"]
+      | `Append_read_fail_if_exists [@bs.as "ax+"]
+      ] [@bs.string]) ->
+    unit = "openSync"  [@@bs.module "fs"]
+
+    type encoding =
+    [
+      `hex
+    | `utf8
+    | `ascii
+    | `latin1
+    | `base64
+    | `ucs2
+    | `base64
+    | `binary
+    | `utf16le ]
+
+    external writeFileSync :
+      string ->
+      string ->
+      encoding ->
+      unit = "writeFileSync"
+    [@@bs.val] [@@bs.module "fs"]
+
+    end
+end
+
 module Buffer = struct
   type t = {
     mutable contents : string;
@@ -104,7 +147,7 @@ let reset_counters () =
 let reset_coverage_data =
   reset_counters
 
-let node_at_exit = [%bs.raw {|
+let node_at_exit : (unit -> unit) -> unit = [%bs.raw {|
   function (callback) {
     if (typeof process !== 'undefined' && typeof process.on !== 'undefined')
       process.on("exit", callback);
@@ -115,7 +158,11 @@ let exit_hook_added = ref false
 
 let write_coverage_data_on_exit () =
   if not !exit_hook_added then begin
-    node_at_exit (fun () -> write_coverage_data (); reset_coverage_data ());
+    node_at_exit (fun () -> 
+      write_coverage_data (); 
+      reset_coverage_data (); 
+      ()
+    );
     exit_hook_added := true
   end
 
