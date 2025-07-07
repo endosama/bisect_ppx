@@ -32,7 +32,7 @@ try_to_commit() {
         git reset --hard $GITHUB_SHA
     fi
     mkdir -p bin/$OS
-    cp test/js/node_modules/@jfrolich/bisect_ppx/ppx bin/$OS/
+    cp test/js/node_modules/@endosama/bisect_ppx/ppx bin/$OS/
     cp test/js/node_modules/.bin/bisect-ppx-report bin/$OS/
     strip bin/$OS/ppx
     strip bin/$OS/bisect-ppx-report

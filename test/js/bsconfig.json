@@ -1,10 +1,10 @@
 {
   "name": "bisect_ppx-test",
   "bs-dependencies": [
-    "@jfrolich/bisect_ppx"
+    "@endosama/bisect_ppx"
   ],
   "ppx-flags": [
-    "@jfrolich/bisect_ppx/ppx"
+    "@endosama/bisect_ppx/ppx"
   ],
   "refmt": 3,
   "sources": ["."]
