@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "ocaml": ">= 4.14.0",
+    "ocaml": "~4.14.0",
     "@opam/cmdliner": "^1.0.0",
     "@opam/dune": "^2.7.0",
     "@opam/ppxlib": ">=0.26.0"
