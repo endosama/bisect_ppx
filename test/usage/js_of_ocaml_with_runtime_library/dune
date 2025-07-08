@@ -6,4 +6,5 @@
 (executable
  (name source)
  (libraries js_of_ocaml-compiler.runtime)
- (preprocess (pps bisect_ppx --conditional)))
+ (preprocess (pps bisect_ppx --conditional))
+ (enabled_if (< ocaml-version 5.0)))

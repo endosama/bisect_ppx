@@ -138,6 +138,15 @@ let set_verbose verbose x =
 
 (* Subcommands. *)
 
+let summary =
+  let call_with_labels
+      coverage_files coverage_paths expect do_not_expect =
+    Text.output ~per_file:false ~coverage_files ~coverage_paths ~expect ~do_not_expect
+  in
+  Term.(const set_verbose $ verbose $ const call_with_labels
+    $ coverage_files 0 $ coverage_paths $ expect $ do_not_expect),
+  term_info "summary" ~doc:"Write coverage summary to STDOUT."
+
 let html =
   let to_directory =
     Arg.(value @@ opt string "./_coverage" @@
@@ -230,7 +239,7 @@ let text =
   in
   Term.(const set_verbose $ verbose $ const call_with_labels
     $ per_file $ coverage_files 0 $ coverage_paths $ expect $ do_not_expect),
-  term_info "summary" ~doc:"Write coverage summary to STDOUT."
+  term_info "text" ~doc:"Write coverage summary to STDOUT."
 
 
 
@@ -294,5 +303,5 @@ let () =
           ("See bisect-ppx-report $(i,COMMAND) --help for further " ^
           "information on each command, including options.")
       ]))
-    [html; send_to; text; cobertura; coveralls; merge]
+    [summary; html; send_to; text; cobertura; coveralls; merge]
   |> Term.exit
