@@ -1,0 +1,45 @@
+FROM node:18-bullseye
+
+# Install necessary build tools
+RUN apt-get update && apt-get install -y \
+    bash \
+    git \
+    make \
+    gcc \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install esy
+RUN npm install -g esy
+
+# Set working directory
+WORKDIR /app
+
+# Copy package configuration files
+COPY package.json ./
+COPY binaries.esy.json ./
+COPY dune-project ./
+COPY bisect_ppx.opam ./
+
+# Copy source code
+COPY src/ ./src/
+COPY lib/ ./lib/
+
+# Install dependencies
+RUN esy install -P binaries.esy.json
+
+# Build the project
+RUN esy -P binaries.esy.json dune build -p bisect_ppx
+
+# Find and copy executables to predictable locations
+RUN mkdir -p /output && \
+    find _build -name "ppx.exe" -o -name "register.exe" | head -1 | xargs -I {} cp {} /output/ppx && \
+    find _build -name "main.exe" -path "*/report/*" | head -1 | xargs -I {} cp {} /output/bisect-ppx-report && \
+    chmod +x /output/ppx /output/bisect-ppx-report
+
+# Copy .cmi files
+RUN mkdir -p /output/lib/ocaml && \
+    find _build -name "*.cmi" -exec cp {} /output/lib/ocaml/ \; 2>/dev/null || true
+
+CMD ["echo", "Build completed. Executables are in /output"] 
