@@ -34,24 +34,6 @@ check_dependencies() {
     fi
 }
 
-# Install additional dependencies that might be missing
-install_additional_deps() {
-    echo "Installing additional dependencies..."
-    
-    # Install reason for refmt
-    if ! esy -P binaries.esy.json exec -- which refmt &> /dev/null; then
-        echo "Installing reason for refmt..."
-        esy -P binaries.esy.json add @opam/reason@latest || true
-    fi
-    
-    # Install js_of_ocaml-compiler for runtime library
-    echo "Installing js_of_ocaml-compiler..."
-    esy -P binaries.esy.json add @opam/js_of_ocaml-compiler@latest || true
-    
-    # Reinstall dependencies
-    esy install -P binaries.esy.json
-}
-
 esy_build() {
     set -e
     set -x
@@ -63,65 +45,60 @@ esy_build() {
     echo "Installing dependencies..."
     esy install -P binaries.esy.json
     
-    # Install additional dependencies
-    install_additional_deps
+    # Build the entire project using the configuration from binaries.esy.json
+    echo "Building bisect_ppx..."
+    esy -P binaries.esy.json dune build -p bisect_ppx
     
-    # Build core components first (skip problematic test directories)
-    echo "Building core libraries..."
-    esy -P binaries.esy.json dune build -p bisect_ppx src/common src/runtime src/ppx src/report
+    # Find and copy the built executables
+    echo "Copying built executables..."
     
-    # Build the common library (generates .cmi files)
-    echo "Building bisect_ppx.common library..."
-    esy -P binaries.esy.json dune build -p bisect_ppx src/common/bisect_common.cmi || true
+    # Find the PPX executable
+    PPX_EXE=$(find _build -name "ppx.exe" -o -name "register.exe" | head -1)
+    if [ -z "$PPX_EXE" ]; then
+        # Try alternative build approach
+        echo "PPX executable not found, trying alternative build..."
+        esy -P binaries.esy.json dune build src/ppx/js/ppx.exe
+        PPX_EXE="_build/default/src/ppx/js/ppx.exe"
+    fi
     
-    # Build the runtime library (generates .cmi files)
-    echo "Building bisect_ppx.runtime library..."
-    esy -P binaries.esy.json dune build -p bisect_ppx src/runtime/native/runtime.cmi || true
-    esy -P binaries.esy.json dune build -p bisect_ppx src/runtime/js/runtime.cmi || true
+    # Find the report executable
+    REPORT_EXE=$(find _build -name "main.exe" -path "*/report/*" | head -1)
+    if [ -z "$REPORT_EXE" ]; then
+        # Try alternative build approach
+        echo "Report executable not found, trying alternative build..."
+        esy -P binaries.esy.json dune build src/report/main.exe
+        REPORT_EXE="_build/default/src/report/main.exe"
+    fi
     
-    # Build the PPX library (generates .cmi files)
-    echo "Building bisect_ppx library..."
-    esy -P binaries.esy.json dune build -p bisect_ppx src/ppx/instrument.cmi || true
-    esy -P binaries.esy.json dune build -p bisect_ppx src/ppx/exclusions.cmi || true
+    # Copy executables with proper permissions
+    if [ -f "$PPX_EXE" ]; then
+        rm -f ./ppx
+        cp "$PPX_EXE" ./ppx
+        chmod +x ./ppx
+        echo "PPX executable copied successfully"
+    else
+        echo "Error: PPX executable not found"
+        exit 1
+    fi
     
-    # Build executables
-    echo "Building executables..."
-    esy -P binaries.esy.json dune build -p bisect_ppx src/ppx/js/ppx.exe
-    cp _build/default/src/ppx/js/ppx.exe ./ppx
-    
-    esy -P binaries.esy.json dune build -p bisect_ppx src/report/main.exe
-    cp _build/default/src/report/main.exe ./bisect-ppx-report
+    if [ -f "$REPORT_EXE" ]; then
+        rm -f ./bisect-ppx-report
+        cp "$REPORT_EXE" ./bisect-ppx-report
+        chmod +x ./bisect-ppx-report
+        echo "Report executable copied successfully"
+    else
+        echo "Error: Report executable not found"
+        exit 1
+    fi
     
     # Copy .cmi files to accessible locations
     echo "Copying .cmi files..."
     mkdir -p lib/ocaml
     
-    # Copy common .cmi files
-    if [ -f "_build/default/src/common/bisect_common.cmi" ]; then
-        cp _build/default/src/common/bisect_common.cmi lib/ocaml/
-    fi
+    # Find and copy all .cmi files from the build
+    find _build -name "*.cmi" -exec cp {} lib/ocaml/ \; 2>/dev/null || true
     
-    # Copy runtime .cmi files
-    if [ -f "_build/default/src/runtime/native/runtime.cmi" ]; then
-        cp _build/default/src/runtime/native/runtime.cmi lib/ocaml/
-    fi
-    
-    # Copy PPX .cmi files
-    if [ -f "_build/default/src/ppx/instrument.cmi" ]; then
-        cp _build/default/src/ppx/instrument.cmi lib/ocaml/
-    fi
-    
-    if [ -f "_build/default/src/ppx/exclusions.cmi" ]; then
-        cp _build/default/src/ppx/exclusions.cmi lib/ocaml/
-    fi
-    
-    # Copy any other .cmi files from the build
-    find _build/default -name "*.cmi" -exec cp {} lib/ocaml/ \; 2>/dev/null || true
-    
-    echo "Build completed successfully with .cmi files generated."
-    
-    # cp ./ppx bin/$OS/ppx 
-    # cp ./bisect-ppx-report bin/$OS/bisect-ppx-report 
+    echo "Build completed successfully."
     
     exit 0
 }
@@ -162,5 +139,7 @@ if [ ! -d "lib/ocaml" ] || [ -z "$(ls -A lib/ocaml/*.cmi 2>/dev/null)" ]; then
 fi
 
 echo "Using pre-built binaries for system '$OS'."
+rm -f ./ppx ./bisect-ppx-report
 cp bin/$OS/ppx ./ppx
 cp bin/$OS/bisect-ppx-report ./bisect-ppx-report
+chmod +x ./ppx ./bisect-ppx-report
