@@ -22,13 +22,14 @@ let esy_source_dir =
   | directory -> [Filename.concat directory "default"]
 
 module Term = Cmdliner.Term
+module Cmd = Cmdliner.Cmd
 module Arg = Cmdliner.Arg
 
 
 
 (* Common arguments. *)
 
-let term_info = Term.info ~sdocs:"COMMON OPTIONS"
+let term_info = Cmd.info ~sdocs:"COMMON OPTIONS"
 
 let coverage_files from_position =
   Arg.(value @@ pos_right (from_position - 1) string [] @@
@@ -138,6 +139,15 @@ let set_verbose verbose x =
 
 (* Subcommands. *)
 
+let summary =
+  let call_with_labels
+      coverage_files coverage_paths expect do_not_expect =
+    Text.output ~per_file:false ~coverage_files ~coverage_paths ~expect ~do_not_expect
+  in
+  Term.(const set_verbose $ verbose $ const call_with_labels
+    $ coverage_files 0 $ coverage_paths $ expect $ do_not_expect),
+  term_info "summary" ~doc:"Write coverage summary to STDOUT."
+
 let html =
   let to_directory =
     Arg.(value @@ opt string "./_coverage" @@
@@ -230,7 +240,7 @@ let text =
   in
   Term.(const set_verbose $ verbose $ const call_with_labels
     $ per_file $ coverage_files 0 $ coverage_paths $ expect $ do_not_expect),
-  term_info "summary" ~doc:"Write coverage summary to STDOUT."
+  term_info "text" ~doc:"Write coverage summary to STDOUT."
 
 
 
@@ -280,8 +290,7 @@ let merge =
 (* Entry point. *)
 
 let () =
-  Term.(eval_choice
-    (ret (const (`Help (`Auto, None))),
+  let group_info = 
     term_info
       "bisect-ppx-report"
       ~doc:"Generate coverage reports for OCaml and Reason."
@@ -293,6 +302,15 @@ let () =
         `P
           ("See bisect-ppx-report $(i,COMMAND) --help for further " ^
           "information on each command, including options.")
-      ]))
-    [html; send_to; text; cobertura; coveralls; merge]
-  |> Term.exit
+      ] in
+  let subcommands = [
+    Cmd.v (snd summary) (fst summary);
+    Cmd.v (snd html) (fst html);
+    Cmd.v (snd send_to) (fst send_to);
+    Cmd.v (snd text) (fst text);
+    Cmd.v (snd cobertura) (fst cobertura);
+    Cmd.v (snd coveralls) (fst coveralls);
+    Cmd.v (snd merge) (fst merge);
+  ] in
+  let group_cmd = Cmd.group group_info subcommands in
+  Stdlib.exit (Cmd.eval group_cmd)

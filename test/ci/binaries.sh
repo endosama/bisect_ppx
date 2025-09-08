@@ -2,9 +2,9 @@
 
 set -e
 
-git remote set-url origin git@github.com:jfrolich/bisect_ppx.git
-git config user.name "Jaap Frolich"
-git config user.email "jfrolich@gmail.com"
+git remote set-url origin git@github.com:endosama/bisect_ppx.git
+git config user.name "Andrea Piras"
+git config user.email "piras.andrea.developer@gmail.com"
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 echo "$DEPLOY_KEY" | base64 --decode > ~/.ssh/binaries
@@ -32,7 +32,7 @@ try_to_commit() {
         git reset --hard $GITHUB_SHA
     fi
     mkdir -p bin/$OS
-    cp test/js/node_modules/@jfrolich/bisect_ppx/ppx bin/$OS/
+    cp test/js/node_modules/@endosama/bisect_ppx/ppx bin/$OS/
     cp test/js/node_modules/.bin/bisect-ppx-report bin/$OS/
     strip bin/$OS/ppx
     strip bin/$OS/bisect-ppx-report

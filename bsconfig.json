@@ -1,5 +1,5 @@
 {
-  "name": "@jfrolich/bisect_ppx",
+  "name": "@endosama/bisect_ppx",
   "namespace": "Bisect",
   "sources": [
     "src/runtime/js"
